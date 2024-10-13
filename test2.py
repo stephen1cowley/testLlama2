@@ -1,4 +1,4 @@
-from transformers import LlamaForCausalLM, LlamaTokenizer
+from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer
 import torch
 
 model_id = '4bit/Llama-2-7b-chat-hf'
@@ -18,7 +18,8 @@ outputs = model.generate(
     **inputs, 
     output_scores=True,
     return_dict_in_generate=True,
-    output_hidden_states=True
+    output_hidden_states=True,
+    dola_layers="high",
 )
 
 # Decode and print the generated tokens
