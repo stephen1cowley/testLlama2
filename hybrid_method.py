@@ -1,4 +1,4 @@
-from typing import Literal, Any, List
+from typing import Literal, Any
 import torch
 from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer, PreTrainedModel
 from transformers.generation.utils import GenerateOutput
