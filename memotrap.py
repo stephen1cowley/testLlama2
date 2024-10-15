@@ -36,21 +36,21 @@ with torch.no_grad():
         )
 
         if isinstance(answer, str):
-            answer = answer[len(context + prompt):]
-            print("Question:", context + " " + prompt)
+            answer = answer[len(context + ": " + prompt):]
+            print("Question:", context + ": " + prompt)
             print("Correct answer:", repr(classes[answer_index]))
-            print("Given answer:", repr(answer))
-            print("Success\n" if answer == classes[answer_index] else "Failure\n")
+            print("CAD Given answer:", repr(answer))
+            print("CAD Success\n" if answer == classes[answer_index] else "CAD Failure\n")
 
         answer = llm.generate(
-            input_text=context + prompt,
+            input_text=context + ": " + prompt,
             dola_layers=None
         )
 
         if isinstance(answer, str):
-            answer = answer[len(context + prompt):]
-            print("Question:", context + " " + prompt)
+            answer = answer[len(context + ": " + prompt):]
+            print("Question:", context + ": " + prompt)
             print("Correct answer:", repr(classes[answer_index]))
-            print("Given answer:", repr(answer))
-            print("Success\n" if answer == classes[answer_index] else "Failure\n")
+            print("Reg Given answer:", repr(answer))
+            print("Reg Success\n" if answer == classes[answer_index] else "Reg Failure\n")
 

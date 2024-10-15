@@ -1,4 +1,4 @@
-from typing import Literal, Any, Tuple
+from typing import Literal, Any, Tuple, List
 import torch
 import torch.nn.functional as F
 from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer, PreTrainedModel, StoppingCriteria, StoppingCriteriaList
@@ -129,7 +129,7 @@ class HybridMethod:
         ) -> str | None:
 
         for _ in range(5):
-            good_dis = self.generate_1(context + prompt)
+            good_dis = self.generate_1(context + ": " + prompt)
             bad_dis = self.generate_1(prompt)
             if good_dis is not None and bad_dis is not None:
                 next_token_id = self.contrastive_decoding(
@@ -140,13 +140,12 @@ class HybridMethod:
                 )
                 if next_token_id == -1:
                     raise TypeError("contrastive_decoding failed to return correct id")
-                next_token: str = self.tokenizer.decode(next_token_id)
-                prompt += next_token  # Append the new token
+                prompt = self.tokenizer.decode(self.tokenizer.encode(prompt) + [next_token_id], skip_special_tokens=True)
 
-                if next_token == ".":
+                if self.tokenizer.decode(next_token_id) == ".":
                     break  # Stop generating after the sentence is ended
             else: raise  
-        return context + " " + prompt  # Assuming the space was taken out before context and prompt passed in
+        return context + ": " + prompt  # Assuming the space was taken out before context and prompt passed in
 
     def log_probs(
             self,
