@@ -1,4 +1,4 @@
-from typing import Literal, Any
+from typing import Literal, Any, List
 import torch
 from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer, PreTrainedModel
 from transformers.generation.utils import GenerateOutput
@@ -20,7 +20,7 @@ class HybridMethod:
     def generate(
             self,
             input_text: str,
-            dola_layers: Literal['high', 'low', None] = None,
+            dola_layers: Literal['high', 'low'] | None = None,
         ) -> str | None:
         """
         Generate either with DoLa, depending on whether `dola_layers` is set to the higher or lower
@@ -35,14 +35,17 @@ class HybridMethod:
             dola_layers=dola_layers,
         )
 
-        if isinstance(outputs, torch.LongTensor):
-            return None
-        elif isinstance(outputs, GenerateOutput):
+        if isinstance(outputs, GenerateOutput):
             return self.tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
+        return None
 
-    def log_probs(self, prompt: str, answer: str):
+    def log_probs(
+            self,
+            prompt: str,
+            answer: str
+        ) -> float:
         """
-        Return
+        Returns log probs of the answer bit
         """
         input_text = prompt + answer
         input_ids = self.tokenizer(input_text, return_tensors="pt").input_ids.to(self.device)
