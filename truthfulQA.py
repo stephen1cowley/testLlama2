@@ -6,8 +6,11 @@ import re
 import pandas as pd
 from typing import List, Dict
 import numpy as np
+from tqdm import tqdm, trange
 
-from prompts import QA_PROMPT
+import torch
+from prompts import QA_PROMPT, TEST_PROMPT_FOR_LOCAL
+from hybrid_method import HybridMethod
 
 ANS_RE = re.compile(r"#### (\-?[0-9\.\,]+)")
 INVALID_ANS = "[invalid]"
@@ -65,8 +68,8 @@ def format_best(best_ans, close=True):
 
 
 def build_prompt_and_answer(input_text, answer):
-    demo = QA_PROMPT
-    input_text_prompt = demo + "Q: " + input_text + "\n" + "A:"
+    demo = TEST_PROMPT_FOR_LOCAL
+    input_text_prompt = demo + "\nQ: " + input_text + "\n" + "A:"
     continue_text = " " + answer
     return input_text_prompt, continue_text
 
@@ -84,8 +87,10 @@ def MC_calcs(scores_true, scores_false, ref_true, ref_best):
     max_false = max(scores_false)
     if scores_true[ref_true.index(ref_best)] > max_false:
         scores['MC1'] = 1.0
+        print("Correct")
     else:
         scores['MC1'] = 0.0
+        print("Incorrect")
 
     # compute MC3: 1vFalse -- each correct answer vs all false answers
     max_false = max(scores_false)
@@ -120,3 +125,53 @@ if __name__ == "__main__":
     fp = os.path.join('TruthfulQA.csv')
 
     list_data_dict = load_csv(fp)
+
+    llm = HybridMethod(
+        model_name='4bit/Llama-2-7b-chat-hf',
+        device='cuda'
+    )
+
+    answers = []
+    result_dict = {'question': [], 'model_scores': [], 'total_mc1': 0.0, 'total_mc2': 0.0, 'total_mc3': 0.0}
+
+    with torch.no_grad():
+        for sample in tqdm(list_data_dict):
+            print("SAMPLE IS", sample)
+            # reference answers
+            ref_best = format_best(sample['answer_best'])
+            ref_true = split_multi_answer(sample['answer_true'])
+            ref_false = split_multi_answer(sample['answer_false'])
+
+            scores_true = []
+            scores_false = []
+
+            for temp_ans in ref_true:
+                # append the current answer choice to the prompt
+                prompt, answer = build_prompt_and_answer(sample['question'], temp_ans)
+                log_probs = llm.log_probs(prompt, answer)
+                print("log probs ref true are", log_probs)
+                scores_true.append(log_probs)
+
+            for temp_ans in ref_false:
+                # append the current answer choice to the prompt
+                prompt, answer = build_prompt_and_answer(sample['question'], temp_ans)
+                log_probs = llm.log_probs(prompt, answer)
+                print("log probs ref false are", log_probs)
+                scores_false.append(log_probs)
+            
+            scores = MC_calcs(scores_true, scores_false, ref_true, ref_best)
+
+            result_dict['model_scores'].append(scores)
+            result_dict['question'].append(sample)
+            # update total scores
+            result_dict['total_mc1'] += scores['MC1']
+            result_dict['total_mc2'] += scores['MC2']
+            result_dict['total_mc3'] += scores['MC3']
+
+        # Average the scores
+        result_dict['total_mc1'] /= len(result_dict['question'])
+        result_dict['total_mc2'] /= len(result_dict['question'])
+        result_dict['total_mc3'] /= len(result_dict['question'])
+
+        # Print the final scores, separated by ', '
+        print(f'Final MC1/2/3: \n{result_dict["total_mc1"]}, {result_dict["total_mc2"]}, {result_dict["total_mc3"]}')

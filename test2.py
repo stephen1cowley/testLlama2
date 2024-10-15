@@ -1,4 +1,4 @@
-from transformers import LlamaForCausalLM, LlamaTokenizer, PreTrainedTokenizer
+from transformers import LlamaForCausalLM, LlamaTokenizer
 import torch
 
 model_id = '4bit/Llama-2-7b-chat-hf'
@@ -10,11 +10,12 @@ if not torch.cuda.is_available():
 # Load the model with low memory usage
 model = LlamaForCausalLM.from_pretrained(model_id, torch_dtype=torch.float16, device_map='auto')
 tokenizer = LlamaTokenizer.from_pretrained(model_id)
+from transformers.generation.utils import GenerateOutput
 
 # Testing the model
 input_text = "Hello, Llama!"
 inputs = tokenizer(input_text, return_tensors="pt").to('cuda')
-outputs = model.generate(
+outputs: GenerateOutput = model.generate(
     **inputs, 
     output_scores=True,
     return_dict_in_generate=True,

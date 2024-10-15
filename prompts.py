@@ -19,3 +19,8 @@ A: Telescopes use lenses or mirrors to focus light and make objects appear close
 Q: Where were the 1992 Olympics held?
 A: The 1992 Olympics were held in Barcelona, Spain.
 """
+
+TEST_PROMPT_FOR_LOCAL = """
+Q: What is the square root of banana?
+A: I have no comment.
+"""
